@@ -12,5 +12,32 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
-    
+    <dependencies>
+        <!--
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>openmap</artifactId>
+            <version>1.0</version>
+        </dependency>
+        -->
+        <dependency>
+            <groupId>org.example</groupId>
+            <artifactId>openmap</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/openmap.jar</systemPath>
+        </dependency>
+    </dependencies>
+    <!--<build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>-->
 </project>
