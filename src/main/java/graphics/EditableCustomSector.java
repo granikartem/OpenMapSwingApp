@@ -15,16 +15,17 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Objects;
 
+/**
+ * A class that encompasses basic CustomSector and provides methods for creating it or modifying the existing one.
+ */
 public class EditableCustomSector extends EditableOMRect implements ActionListener{
-    protected CustomSector sector;
 
-    public final static String OffsetResetCmd = "OffsetResetCmd";
-    public final static int CENTER_POINT_INDEX = 0;
-    public final static int NW_POINT_INDEX = 1;
-    public final static int NE_POINT_INDEX = 2;
-    public final static int SW_POINT_INDEX = 3;
-    public final static int SE_POINT_INDEX = 4;
+    /**
+     * This object's instance of CustomSector that it creates and/or modifies.
+     */
+    protected CustomSector sector;
     public final static int OFFSET_POINT_INDEX = 5;
 
     /**
@@ -36,7 +37,7 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
     }
 
     /**
-     * Create an EditableCustomSector()with the sectorType and renderType parameters in
+     * Create an EditableCustomSector with the sectorType and renderType parameters in
      * the GraphicAttributes object.
      */
     public EditableCustomSector(GraphicAttributes ga) {
@@ -44,10 +45,10 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
     }
 
     /**
-     * Create the EditableCustomSector()with an CustomSector()already defined, ready for
+     * Create the EditableCustomSector with an CustomSector already defined, ready for
      * editing.
      *
-     * @param omc CustomSector()that should be edited.
+     * @param omc CustomSector that should be edited.
      */
     public EditableCustomSector(CustomSector omc) {
         setGraphic(omc);
@@ -58,6 +59,7 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
      * one shall be created, and located off screen until the gestures driving
      * the state machine place it on the map.
      */
+    @Override
     public void setGraphic(OMGraphic graphic) {
         init();
         if (graphic instanceof CustomSector) {
@@ -73,6 +75,7 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
      * Create and set the graphic within the state machine. The
      * GraphicAttributes describe the type of sector to create.
      */
+    @Override
     public void createGraphic(GraphicAttributes ga) {
         init();
         stateMachine.setUndefined();
@@ -93,9 +96,7 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
             case (OMGraphic.RENDERTYPE_LATLON):
                 if (lineType == OMGraphic.LINETYPE_UNKNOWN) {
                     lineType = OMGraphic.LINETYPE_GREATCIRCLE;
-                    if (ga != null) {
-                        ga.setLineType(OMGraphic.LINETYPE_GREATCIRCLE);
-                    }
+                    ga.setLineType(OMGraphic.LINETYPE_GREATCIRCLE);
                 }
 
                 sector = new CustomSector(90f, -180f, 90f, -180f, lineType);
@@ -113,50 +114,40 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
 
         assertGrabPoints();
     }
+
     /**
-     * Get the OMGraphic being created/modified by the EditableOMRect.
+     * Get the OMGraphic being created/modified by the EditableCustomSector.
      */
+    @Override
     public OMGraphic getGraphic() {
         return sector;
     }
-    /**
-     * Set the GrabPoint that is in the middle of being modified, as a result of
-     * a mouseDragged event, or other selection process.
-     */
-    // public void setMovingPoint(GrabPoint gp) {
-    // super.setMovingPoint(gp);
-    // }
 
     double diffx;
     double diffy;
 
-    // Called from the state machine...
+    @Override
     public void initRectSize() {
         diffx = Math.abs(sector.getEastLon() - sector.getWestLon()) / 2f;
         diffy = Math.abs(sector.getNorthLat() - sector.getSouthLat()) / 2f;
-        // Debug.output("initRectSize(): diffx:" + diffx + ", diffy:"
-        // + diffy);
     }
 
     /**
      * Take the current location of the GrabPoints, and modify the location
-     * parameters of the OMRect with them. Called when you want the graphic to
+     * parameters of the Custom Sector with them. Called when you want the graphic to
      * change according to the grab points.
      */
+    @Override
     public void setGrabPoints() {
 
         int renderType = sector.getRenderType();
         LatLonPoint llp1;
 
-        Debug.message("eomg", "EditableOMRect.setGrabPoints()");
+        Debug.message("eomg", "EditableCustomSector.setGrabPoints()");
 
-        // Do center point for lat/lon or offset sectors
         if (renderType == OMGraphic.RENDERTYPE_LATLON) {
             if (projection != null) {
 
-                // Need to figure out which point was moved, and then
-                // set the upper left and lower right points
-                // accordingly.
                 if (movingPoint == gpne) {
                     llp1 = projection.inverse(gpne.getX(), gpne.getY(), new LatLonPoint.Double());
                     sector.setLat1(llp1.getY());
@@ -177,7 +168,6 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
                     sector.setLat2(llp1.getY());
                     sector.setLon2(llp1.getX());
                 } else {
-                    // movingPoint == gpc
                     llp1 = projection.inverse(gpc.getX(),
                             gpc.getY(),
                             new LatLonPoint.Double());
@@ -193,7 +183,6 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
         boolean settingOffset = getStateMachine().getState() instanceof GraphicSetOffsetState
                 && movingPoint == gpo;
 
-        // If the center point is moving, the offset distance changes
         if (renderType == OMGraphic.RENDERTYPE_OFFSET) {
 
             llp1 = projection.inverse(gpo.getX(), gpo.getY(), new LatLonPoint.Double());
@@ -205,8 +194,6 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
                 int halfheight = (gpse.getY() - gpnw.getY()) / 2;
                 int halfwidth = (gpse.getX() - gpnw.getX()) / 2;
 
-                // Don't call sector.setLocation because we only want to
-                // setNeedToRegenerate if !settingOffset.
                 sector.setX1(gpc.getX() - halfwidth - gpo.getX());
                 sector.setY1(gpc.getY() - halfheight - gpo.getY());
                 sector.setX2(gpc.getX() + halfwidth - gpo.getX());
@@ -214,7 +201,7 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
             }
 
             if (!settingOffset) {
-                Debug.message("eomg", "EditableOMRect: updating offset sector");
+                Debug.message("eomg", "EditableCustomSector: updating offset sector");
                 if (movingPoint == gpnw || movingPoint == gpse) {
                     sector.setLocation(gpnw.getX() - gpo.getX(), gpnw.getY() - gpo.getY(), gpse.getX()
                             - gpo.getX(), gpse.getY() - gpo.getY());
@@ -225,16 +212,11 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
                 sector.setNeedToRegenerate(true);
             }
 
-            // Set Location has reset the rendertype, but provides
-            // the convenience of setting the max and min values
-            // for us.
             sector.setRenderType(OMGraphic.RENDERTYPE_OFFSET);
         }
 
-        // Do the sector height and width for XY and OFFSET render
-        // types.
         if (renderType == OMGraphic.RENDERTYPE_XY) {
-            Debug.message("eomg", "EditableOMRect: updating x/y sector");
+            Debug.message("eomg", "EditableCustomSector: updating x/y sector");
 
             if (movingPoint == gpc) {
                 int halfheight = (gpse.getY() - gpnw.getY()) / 2;
@@ -261,13 +243,13 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
      * @param proj com.bbn.openmap.proj.Projection
      * @return true
      */
+    @Override
     public boolean generate(Projection proj) {
         Debug.message("eomgdetail", "EditableCustomSector.generate()");
         if (sector != null)
             sector.generate(proj);
 
-        for (int i = 0; i < gPoints.length; i++) {
-            GrabPoint gp = gPoints[i];
+        for (GrabPoint gp : gPoints) {
             if (gp != null) {
                 gp.generate(proj);
             }
@@ -279,8 +261,9 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
      * Given a new projection, the grab points may need to be repositioned off
      * the current position of the graphic. Called when the projection changes.
      */
+    @Override
     public void regenerate(Projection proj) {
-        Debug.message("eomg", "EditableOMRect.regenerate()");
+        Debug.message("eomg", "EditableCustomSector.regenerate()");
         if (sector != null)
             sector.regenerate(proj);
 
@@ -289,12 +272,13 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
     }
 
     /**
-     * Draw the EditableOMRect parts into the java.awt.Graphics object. The grab
+     * Draw the EditableCustomSector parts into the java.awt.Graphics object. The grab
      * points are only rendered if the rect machine state is
      * RectSelectedState.RECT_SELECTED.
      *
      * @param graphics java.awt.Graphics.
      */
+    @Override
     public void render(java.awt.Graphics graphics) {
         Debug.message("eomgdetail", "EditableCustomSector.render()");
 
@@ -318,7 +302,7 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
                 GrabPoint gp = gPoints[i];
                 if (gp != null) {
                     if ((i == OFFSET_POINT_INDEX && renderType == OMGraphic.RENDERTYPE_OFFSET && movingPoint == gpo)
-                            || (state instanceof GraphicSelectedState && ((i != OFFSET_POINT_INDEX && renderType != OMGraphic.RENDERTYPE_OFFSET) || (renderType == OMGraphic.RENDERTYPE_OFFSET)))
+                            || (state instanceof GraphicSelectedState && (i != OFFSET_POINT_INDEX || renderType == OMGraphic.RENDERTYPE_OFFSET))
 
                     ) {
 
@@ -333,7 +317,7 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
 
     /**
      * Modifies the gui to not include line type adjustments, and adds widgets
-     * to control point settings.
+     * to control sector settings.
      *
      * @param graphicAttributes the GraphicAttributes to use to get the GUI
      *        widget from to control those parameters for this EOMG.
@@ -353,7 +337,7 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
         }
     }
 
-    /** Command for text string adjustments. */
+    /** Commands for changing the name, coordinates of the center-point and radiuses. */
     public final static String NameFieldCommand = "NameField";
     public final static String CenterLatitudeCommand = "CenterLatitude";
     public final static String CenterLongitudeCommand = "CenterLongitude";
@@ -361,13 +345,13 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
     public final static String LongitudeRadiusCommand = "LongitudeRadius";
 
     protected JComponent getCustomPointGUI() {
-        return getCustomPointGUI(SwingConstants.HORIZONTAL, (JComponent) null);
+        return getCustomPointGUI(SwingConstants.HORIZONTAL, null);
     }
 
     JComponent attributeBox;
 
     /**
-     * Get the GUI associated with changing the CustomPoint.
+     * Get the GUI associated with changing the CustomSector.
      *
      * @param orientation SwingConstants.HORIZONTAL/VERTICAL
      * @param guiComp the JComponent to add stuff to. If the orientation is
@@ -475,15 +459,19 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
         return guiComp;
     }
 
+    /**
+     * Method for applying changes from the GUI fields to the sector.
+     * @param e event this class listens to, i.e. changes in GUI fields.
+     */
     public void actionPerformed(ActionEvent e) {
         Object source = e.getSource();
         String command = e.getActionCommand();
 
-        if (command == NameFieldCommand) {
+        if (Objects.equals(command, NameFieldCommand)) {
             sector.setName(((JTextField) source).getText());
             sector.regenerate(projection);
             repaint();
-        }  else if (command == CenterLatitudeCommand) {
+        }  else if (Objects.equals(command, CenterLatitudeCommand)) {
             double latitude = new Double(((JTextField) source).getText());
             if(Math.abs(latitude) < 90) {
                 double latRad = Math.abs(sector.getLat2() - sector.getLat1());
@@ -492,8 +480,8 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
                 sector.regenerate(projection);
                 repaint();
             }
-        } else if (command == CenterLongitudeCommand) {
-            Double longitude = new Double(((JTextField) source).getText());
+        } else if (Objects.equals(command, CenterLongitudeCommand)) {
+            double longitude = new Double(((JTextField) source).getText());
             if(Math.abs(longitude) < 180) {
                 double lonRad = Math.abs(sector.getLon2()  - sector.getLon1());
                 sector.setLon1(longitude);
@@ -501,8 +489,8 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
                 sector.regenerate(projection);
                 repaint();
             }
-        } else if (command == LatitudeRadiusCommand){
-            Double latRad = new Double(((JTextField) source).getText());
+        } else if (Objects.equals(command, LatitudeRadiusCommand)){
+            double latRad = new Double(((JTextField) source).getText());
             if(latRad > 0 && latRad < 90) {
                 double latitude = sector.getLat1() + latRad;
                 if(latitude > 90){
@@ -512,8 +500,8 @@ public class EditableCustomSector extends EditableOMRect implements ActionListen
                 sector.regenerate(projection);
                 repaint();
             }
-        } else if (command == LongitudeRadiusCommand){
-            Double lonRad = new Double(((JTextField) source).getText());
+        } else if (Objects.equals(command, LongitudeRadiusCommand)){
+            double lonRad = new Double(((JTextField) source).getText());
             if(lonRad < 180 && lonRad > 0) {
                 double longitude = sector.getLon1() + lonRad;
                 if(longitude > 180){

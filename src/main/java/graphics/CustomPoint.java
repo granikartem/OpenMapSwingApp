@@ -11,9 +11,22 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.GeneralPath;
 
-public class CustomPoint extends OMPoint {
+/**
+ * Graphic type that lets you draw CustomPoints, i.e. points that can have their name and rotation angle
+ * be set by the user.
+ */
+public class CustomPoint extends OMPoint implements Nameable{
+
+    /**
+     * String field that contains the name of the object.
+     */
     protected String name;
+
+    /**
+     * Field containing the rotation angle of the object in radians.
+     */
     protected double rotationAngle = DEFAULT_ROTATIONANGLE;
+
     /**
      * The rotation angle used at render time, depending on rotate-ability.
      * Radians. If null, no rotation should be applied at render time.
@@ -26,14 +39,16 @@ public class CustomPoint extends OMPoint {
     }
 
     /**
-     * Create an OMPoint at a lat/lon position, with the default radius.
+     * Create a CustomPoint at a lat/lon position, with the default radius.
+     * <p>Set the name of the object to 'point' by default. </p>
      */
     public CustomPoint(double lat, double lon) {
         this(lat, lon, DEFAULT_RADIUS);
     }
 
     /**
-     * Create an OMPoint at a lat/lon position, with the specified radius.
+     * Create a CustomPoint at a lat/lon position, with the specified radius.
+     * <p>Set the name of the object to 'point' by default. </p>
      */
     public CustomPoint(double lat, double lon, int radius) {
         setRenderType(RENDERTYPE_LATLON);
@@ -43,16 +58,18 @@ public class CustomPoint extends OMPoint {
     }
 
     /**
-     * Create an OMPoint at a lat/lon position with a screen X/Y pixel offset,
+     * Create a CustomPoint at a lat/lon position with a screen X/Y pixel offset,
      * with the default radius.
+     * <p>Set the name of the object to 'point' by default. </p>
      */
     public CustomPoint(double lat, double lon, int offsetx, int offsety) {
         this(lat, lon, offsetx, offsety, DEFAULT_RADIUS);
     }
 
     /**
-     * Create an OMPoint at a lat/lon position with a screen X/Y pixel offset,
+     * Create a CustomPoint at a lat/lon position with a screen X/Y pixel offset,
      * with the specified radius.
+     * <p>Set the name of the object to 'point' by default. </p>
      */
     public CustomPoint(double lat, double lon, int offsetx, int offsety, int radius) {
         setRenderType(RENDERTYPE_OFFSET);
@@ -64,6 +81,7 @@ public class CustomPoint extends OMPoint {
     /**
      * Put the point at a screen location, marked with a rectangle with edge
      * size DEFAULT_RADIUS * 2 + 1.
+     * <p>Set the name of the object to 'point' by default. </p>
      */
     public CustomPoint(int x, int y) {
         this(x, y, DEFAULT_RADIUS);
@@ -72,6 +90,7 @@ public class CustomPoint extends OMPoint {
     /**
      * Put the point at a screen location, marked with a rectangle with edge
      * size radius * 2 + 1.
+     * <p>Set the name of the object to 'point' by default. </p>
      */
     public CustomPoint(int x, int y, int radius) {
         setRenderType(RENDERTYPE_XY);
@@ -80,14 +99,19 @@ public class CustomPoint extends OMPoint {
         this.radius = radius;
     }
 
+    /**
+     * Set the name of the object.
+     * @param name the name to be set for the object.
+     */
+    @Override
     public synchronized void setName(String name){
         this.name = name;
     }
 
     /**
-     * Set the angle by which the text is to rotated.
+     * Set the angle by which the point is to be rotated.
      *
-     * @param angle the number of radians the text is to be rotated. Measured
+     * @param angle the number of radians the point is to be rotated. Measured
      *        clockwise from horizontal. Positive numbers move the positive x
      *        axis toward the positive y axis.
      */
@@ -96,13 +120,20 @@ public class CustomPoint extends OMPoint {
         setNeedToRegenerate(true);
     }
 
+    /**
+     * Get the current name of the object.
+     *
+     * @return String containing the name of the object
+     */
+    @Override
     public String getName() {
         return name;
     }
+
     /**
-     * Get the current rotation of the text.
+     * Get the current rotation of the point.
      *
-     * @return the text rotation.
+     * @return the angle of point rotation.
      */
     public double getRotationAngle() {
         return rotationAngle;
@@ -166,17 +197,16 @@ public class CustomPoint extends OMPoint {
         }else{
             at = AffineTransform.getRotateInstance(0.0);
         }
+        GeneralPath shape;
         if (oval) {
-            GeneralPath shape = new GeneralPath(new Ellipse2D.Float((float) x, (float) y, (float) Math.abs(x2
+            shape = new GeneralPath(new Ellipse2D.Float((float) x, (float) y, (float) Math.abs(x2
                     - x1), (float) Math.abs(y2 - y1)));
-            shape.transform(at);
-            setShape(shape);
         } else {
-            GeneralPath shape = createBoxShape(x, y, Math.abs(x2 - x1),
+            shape = createBoxShape(x, y, Math.abs(x2 - x1),
                     Math.abs(y2 - y1));
-            shape.transform(at);
-            setShape(shape);
         }
+        shape.transform(at);
+        setShape(shape);
 
         initLabelingDuringGenerate();
         setLabelLocation(new Point(x2, y1), proj);
@@ -184,8 +214,9 @@ public class CustomPoint extends OMPoint {
         setNeedToRegenerate(false);
         return true;
     }
+
     /**
-     * Set the renderRotationAngle based on the projection angle and OMText
+     * Set the renderRotationAngle based on the projection angle and this CustomPoint
      * settings.
      *
      * @param proj the current projection.
@@ -204,6 +235,11 @@ public class CustomPoint extends OMPoint {
         }
     }
 
+    /**
+     * Takes the OMGeometry object and if it also belongs to this class copies it to this object.
+     * @param source Object to be restored.
+     */
+    @Override
     public void restore(OMGeometry source) {
         super.restore(source);
         if (source instanceof CustomPoint) {

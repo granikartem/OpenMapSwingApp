@@ -17,11 +17,20 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.net.URL;
+import java.util.Objects;
 
+/**
+ * A class that encompasses basic CustomPoly and provides methods for creating it or modifying the existing one.
+ */
 public class EditableCustomPoly extends EditableOMPoly implements ActionListener{
-    protected CustomPoly poly;
+
     /**
-     * Create the EditableOMPoly, setting the state machine to create the poly
+     *  This object's instance of CustomPoly that it creates and/or modifies.
+     */
+    protected CustomPoly poly;
+
+    /**
+     * Create the EditableCustomPoly, setting the state machine to create the poly
      * off of the gestures.
      */
     public EditableCustomPoly() {
@@ -29,7 +38,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
     }
 
     /**
-     * Create an EditableOMPoly with the polyType and renderType parameters in
+     * Create an EditableCustomPoly with the polyType and renderType parameters in
      * the GraphicAttributes object.
      */
     public EditableCustomPoly(GraphicAttributes ga) {
@@ -37,19 +46,21 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
     }
 
     /**
-     * Create the EditableOMPoly with an OMPoly already defined, ready for
+     * Create the EditableCustomPoly with a CustomPoly already defined, ready for
      * editing.
      *
-     * @param omp OMPoly that should be edited.
+     * @param omp CustomPoly that should be edited.
      */
     public EditableCustomPoly(CustomPoly omp) {
         setGraphic(omp);
     }
+
     /**
      * Set the graphic within the state machine. If the graphic is null, then
      * one shall be created, and located off screen until the gestures driving
      * the state machine place it on the map.
      */
+    @Override
     public void setGraphic(OMGraphic graphic) {
         init();
         if (graphic instanceof CustomPoly) {
@@ -61,10 +72,12 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             createGraphic(null);
         }
     }
+
     /**
      * Create and set the graphic within the state machine. The
      * GraphicAttributes describe the type of poly to create.
      */
+    @Override
     public void createGraphic(GraphicAttributes ga) {
         init();
         stateMachine.setUndefined();
@@ -77,13 +90,12 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
         }
 
         if (Debug.debugging("eomg")) {
-            Debug.output("EditableOMPoly.createGraphic(): rendertype = " + renderType);
+            Debug.output("EditableCustomPoly.createGraphic(): rendertype = " + renderType);
         }
 
         if (lineType == OMGraphic.LINETYPE_UNKNOWN) {
             lineType = OMGraphic.LINETYPE_GREATCIRCLE;
-            if (ga != null)
-                ga.setLineType(OMGraphic.LINETYPE_GREATCIRCLE);
+            ga.setLineType(OMGraphic.LINETYPE_GREATCIRCLE);
         }
 
         this.poly = (CustomPoly) createGraphic(renderType, lineType);
@@ -95,10 +107,11 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
     }
 
     /**
-     * Extendable method to create specific subclasses of OMPolys.
+     * Extendable method to create specific subclasses of CustomPolys.
      */
+    @Override
     public OMGraphic createGraphic(int renderType, int lineType) {
-        OMGraphic g = null;
+        CustomPoly g;
         switch (renderType) {
             case (OMGraphic.RENDERTYPE_LATLON):
                 g = new CustomPoly(new double[0], OMGraphic.RADIANS, lineType);
@@ -109,19 +122,25 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             default:
                 g = new CustomPoly(new int[0]);
         }
-        ((CustomPoly) g).setDoShapes(true);
+        g.setDoShapes(true);
         return g;
     }
+
+    /**
+     * Get the OMGraphic being created/modified by the EditableCustomPoly.
+     */
+    @Override
     public OMGraphic getGraphic() {
         return poly;
     }
+
     /**
      * Take the current location of the GrabPoints, and modify the location
-     * parameters of the OMPoly with them. Called when you want the graphic to
+     * parameters of the CustomPoly with them. Called when you want the graphic to
      * change according to the grab points.
      */
+    @Override
     public void setGrabPoints() {
-
         int renderType = poly.getRenderType();
         Projection proj = getProjection();
         if (renderType == OMGraphic.RENDERTYPE_LATLON) {
@@ -129,13 +148,6 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
 
                 double[] newCoords = new double[polyGrabPoints.size() * 2];
 
-                // OK, this code resets the location of every point slightly to
-                // the inverse location of the grab points. So if you grab one
-                // node and move it, all of the precise values of each node
-                // actually changes. As we go through the array of grab points,
-                // we can check the corresponding projected location of the
-                // current node and it matches the grab point, just use the
-                // current poly value.
                 double[] currentCoords = ProjMath.arrayRadToDeg(poly.getLatLonArrayCopy());
 
                 Point2D polyPoint = new Point2D.Double();
@@ -147,8 +159,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                     int latIndex = i * 2;
                     int lonIndex = i * 2 + 1;
 
-                    // Set the current coordinate to the GP coordinate - the
-                    // logic is easier this way
+
                     proj.inverse(gb.getX(), gb.getY(), movedPoint);
                     newCoords[latIndex] = movedPoint.getY();
                     newCoords[lonIndex] = movedPoint.getX();
@@ -159,8 +170,6 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                         double lon = currentCoords[lonIndex];
                         polyPoint = proj.forward(lat, lon, polyPoint);
 
-                        // if the grab point, forward projected, is in the same
-                        // pixel as the old point, then use the previous value.
                         boolean pointUnmoved = polyPoint.getX() == gb.getX()
                                 && polyPoint.getY() == gb.getY();
                         if (pointUnmoved) {
@@ -171,24 +180,16 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                 }
 
                 double[] oldCoords = ProjMath.arrayRadToDeg(poly.getLatLonArrayCopy());
-                int changeCount = 0;
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < oldCoords.length - 1; i += 2) {
                     if (oldCoords[i] != newCoords[i] || oldCoords[i + 1] != newCoords[i + 1]) {
                         sb.append(i / 2).append(" ");
-                        changeCount++;
                     }
                 }
-
-                /*
-                 * Debug.output("EOMP.SGP: " + changeCount +
-                 * " points changed out of " + (oldCoords.length / 2) + ", " +
-                 * sb.toString());
-                 */
                 poly.setLocation(ProjMath.arrayDegToRad(newCoords), OMGraphic.RADIANS);
 
             } else {
-                Debug.message("eomg", "EditableOMPoly.setGrabPoints: projection is null, can't figure out LATLON points for poly.");
+                Debug.message("eomg", "EditableCustomPoly.setGrabPoints: projection is null, can't figure out LATLON points for poly.");
             }
         }
 
@@ -196,13 +197,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
 
             int[] ints = new int[polyGrabPoints.size() * 2];
             if (renderType == OMGraphic.RENDERTYPE_OFFSET && gpo != null) {
-                // If offset rendertype, the x-y have to be offset
-                // distances, not screen pixel locations. For the
-                // polygon, you also need to take into account that
-                // the ints can represent 2 different things: distance
-                // from the origin (Offset) or distance from the
-                // previous point. Need to check with the poly to
-                // find out which to do.
+
                 GrabPoint previous = gpo;
 
                 for (int i = 0; i < polyGrabPoints.size(); i++) {
@@ -227,7 +222,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                     poly.setLocation(llp.getRadLat(), llp.getRadLon(), OMGraphic.RADIANS, ints);
 
                 } else {
-                    Debug.message("eomg", "EditableOMPoly.setGrabPoints: projection is null, can't figure out LATLON points for poly offset.");
+                    Debug.message("eomg", "EditableCustomPoly.setGrabPoints: projection is null, can't figure out LATLON points for poly offset.");
                 }
             } else {
 
@@ -243,6 +238,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
         }
 
     }
+
     /**
      * Add a point at a certain point in the polygon coordinate list. If the
      * position is less than zero, the point will be the starting point. If the
@@ -253,6 +249,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
      *
      * @return the index for the point in the polygon, starting with 0.
      */
+    @Override
     public int addPoint(GrabPoint gp, int position) {
 
         if (gp == null) {
@@ -266,7 +263,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
         Projection proj = getProjection();
 
         if (renderType == OMGraphic.RENDERTYPE_LATLON) {
-            Debug.message("eomg", "EditableOMPoly: adding point to lat/lon poly");
+            Debug.message("eomg", "EditableCustomPoly: adding point to lat/lon poly");
 
             if (proj != null) {
 
@@ -301,14 +298,11 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                     position = ll.length / 2;
 
                 } else if (actualPosition <= 0) {
-                    // Put the new point at the beginning
                     System.arraycopy(ll, 0, newll, 2, ll.length);
                     newll[0] = newlat;
                     newll[1] = newlon;
                     position = 0;
                 } else {
-                    // actualPosition because there are 2 floats for every
-                    // position.
                     newll[actualPosition] = newlat;
                     newll[actualPosition + 1] = newlon;
                     System.arraycopy(ll, 0, newll, 0, actualPosition);
@@ -319,14 +313,12 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                 poly.setLocation(newll, OMGraphic.RADIANS);
             }
         } else if (renderType == OMGraphic.RENDERTYPE_XY) {
-            // Grab the projected endpoints
-            Debug.message("eomg", "EditableOMPoly: adding point to x/y poly");
+            Debug.message("eomg", "EditableCustomPoly: adding point to x/y poly");
             int currentLength = poly.getXs().length;
             int[] newxs = new int[currentLength + 1];
             int[] newys = new int[currentLength + 1];
 
             if (position >= currentLength) {
-                // Put the new points at the end
                 System.arraycopy(poly.getXs(), 0, newxs, 0, currentLength);
                 System.arraycopy(poly.getYs(), 0, newys, 0, currentLength);
                 newxs[currentLength] = x;
@@ -335,7 +327,6 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                 position = currentLength;
 
             } else if (position <= 0) {
-                // Put the new points at the beginning
                 System.arraycopy(poly.getXs(), 0, newxs, 1, currentLength);
                 System.arraycopy(poly.getYs(), 0, newys, 1, currentLength);
                 newxs[0] = x;
@@ -357,22 +348,18 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             poly.setLocation(newxs, newys);
 
         } else {
-            // Rendertype is offset...
-            // Grab the projected endpoints
-            Debug.message("eomg", "EditableOMPoly: adding point to offset poly");
+            Debug.message("eomg", "EditableCustomPoly: adding point to offset poly");
             int currentLength = poly.getXs().length;
             int[] newxs = new int[currentLength + 1];
             int[] newys = new int[currentLength + 1];
 
             if (position >= currentLength) {
-                // Put the new points at the end
                 position = currentLength;
 
                 System.arraycopy(poly.getXs(), 0, newxs, 0, currentLength);
                 System.arraycopy(poly.getYs(), 0, newys, 0, currentLength);
 
             } else if (position <= 0) {
-                // Put the new points at the beginning
                 position = 0;
 
                 System.arraycopy(poly.getXs(), 0, newxs, 1, currentLength);
@@ -399,18 +386,14 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             }
 
             if (poly.getCoordMode() == CustomPoly.COORDMODE_ORIGIN || position == 0) { // cover
-                // the first point
                 newxs[position] = x - offsetX;
                 newys[position] = y - offsetY;
-            } else { // CMode Previous offset deltas
+            } else {
                 newxs[position] = x - offsetX - newxs[position - 1];
                 newys[position] = y - offsetY - newys[position - 1];
             }
 
             if (position == 0) {
-                // Could call projection.getCenter() but that might
-                // break if/when we make other projection
-                // libraries/paradigms active.
                 LatLonPoint llpnt = proj.inverse(offsetX, offsetY, new LatLonPoint.Double());
 
                 poly.setLat(llpnt.getRadLat());
@@ -420,15 +403,9 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             poly.setLocation(poly.getLat(), poly.getLon(), OMGraphic.RADIANS, newxs, newys);
         }
 
-        // Need to reset the arrowhead when an end point is added,
-        // removing it from the shape when the point gets added.
-        // Otherwise, you end up with a arrowhead at each junction of
-        // the polygon.
         OMArrowHead omah = poly.getArrowHead();
         poly.setArrowHead(null);
 
-        // Reset the arrowhead so it will get drawn on the new
-        // segment.
         poly.setArrowHead(omah);
         polyGrabPoints.add(position, gp);
 
@@ -436,8 +413,6 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             gpo.addGrabPoint(gp);
         }
 
-        // This is the standard call that needs to be made here, the
-        // arrowhead changes are around this.
         poly.regenerate(proj);
         gp.generate(proj);
 
@@ -450,6 +425,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
      * If the position is greater than the list of current points, the point
      * will be deleted from the end of the poly.
      */
+    @Override
     public void deletePoint(int position) {
 
         int renderType = poly.getRenderType();
@@ -457,14 +433,12 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
 
         boolean needToHookUp = false;
         if (position <= 0 && isEnclosed()) {
-            // if the position is 0 and the polygon is enclosed, we
-            // need to disengage the two points, then reattach.
             enclose(false);
             needToHookUp = true;
         }
 
         if (renderType == OMGraphic.RENDERTYPE_LATLON) {
-            Debug.message("eomg", "EditableOMPoly: removing point from lat/lon poly");
+            Debug.message("eomg", "EditableCustomPoly: removing point from lat/lon poly");
 
             if (proj != null) {
 
@@ -474,17 +448,12 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                 int actualPosition = (position == Integer.MAX_VALUE ? ll.length : position * 2);
 
                 if (actualPosition >= ll.length) {
-                    // Pull the new points off the end
                     System.arraycopy(ll, 0, newll, 0, ll.length - 2);
                     position = (ll.length - 2) / 2;
                 } else if (actualPosition <= 0) {
-                    // Pull the new points off the beginning
                     System.arraycopy(ll, 2, newll, 0, ll.length - 2);
                     position = 0;
                 } else {
-                    // actualPosition because there are 2 floats for
-                    // every
-                    // position.
                     System.arraycopy(ll, 0, newll, 0, actualPosition);
                     System.arraycopy(ll, actualPosition + 2, newll, actualPosition, ll.length
                             - actualPosition - 2);
@@ -492,19 +461,16 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
                 poly.setLocation(newll, poly.getUnits());
             }
         } else {
-            // Grab the projected endpoints
-            Debug.message("eomg", "EditableOMPoly: removing point from x/y or offset poly");
+            Debug.message("eomg", "EditableCustomPoly: removing point from x/y or offset poly");
             int currentLength = poly.getXs().length;
             int[] newxs = new int[currentLength - 1];
             int[] newys = new int[currentLength - 1];
 
             if (position >= currentLength) {
-                // Pull the points from the end...
                 System.arraycopy(poly.getXs(), 0, newxs, 0, currentLength - 1);
                 System.arraycopy(poly.getYs(), 0, newys, 0, currentLength - 1);
                 position = currentLength - 1;
             } else if (position <= 0) {
-                // Pull the points from the beginning...
                 System.arraycopy(poly.getXs(), 1, newxs, 0, currentLength - 1);
                 System.arraycopy(poly.getYs(), 1, newys, 0, currentLength - 1);
                 position = 0;
@@ -531,7 +497,6 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             poly.regenerate(proj);
         }
 
-        // Remove the GrabPoint for the deleted spot.
         GrabPoint gp = polyGrabPoints.remove(position);
         if (gpo != null && gp != null) {
             gpo.removeGrabPoint(gp);
@@ -541,6 +506,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             enclose(true);
         }
     }
+
     /**
      * Called to set the OffsetGrabPoint to the current mouse location, and
      * update the OffsetGrabPoint with all the other GrabPoint locations, so
@@ -550,10 +516,8 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
      * just be called, and the movingPoint will make the adjustments to the
      * graphic that are needed.
      */
+    @Override
     public void move(MouseEvent e) {
-        // Need to check to see if the OffsetGrabPoint is currently
-        // being used. If not, just use it, otherwise, will need to
-        // create a special one for the move.
 
         Point2D pnt = getProjectionPoint(e);
         int x = (int) pnt.getX();
@@ -568,11 +532,11 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             gpm.set(x, y);
         }
 
-        // Move all the other points along with the offset point...
         addPolyGrabPointsToOGP(gpm);
 
         movingPoint = gpm;
     }
+
     /**
      * Use the current projection to place the graphics on the screen. Has to be
      * called to at least assure the graphics that they are ready for rendering.
@@ -581,20 +545,22 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
      * @param proj com.bbn.openmap.proj.Projection
      * @return true
      */
+    @Override
     public boolean generate(Projection proj) {
-        Debug.message("eomg", "EditableOMPoly.generate()");
+        Debug.message("eomg", "EditableCustomPoly.generate()");
         if (poly != null) {
             poly.generate(proj);
         }
         generateGrabPoints(proj);
         return true;
     }
+
     /**
      * Generate the grab points, checking the OMGraphic to see if it contains
      * information about what the grab points should look like.
      *
-     * @param proj
      */
+    @Override
     protected void generateGrabPoints(Projection proj) {
 
         DrawingAttributes grabPointDA = null;
@@ -604,8 +570,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
         }
 
         int index = 0;
-        // Generate all the grab points, but also check to make sure the drawing
-        // attributes are right
+
         for (GrabPoint gb : polyGrabPoints) {
             if (gb != null) {
 
@@ -638,12 +603,14 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             gpo.updateOffsets();
         }
     }
+
     /**
      * Given a new projection, the grab points may need to be repositioned off
      * the current position of the graphic. Called when the projection changes.
      */
+    @Override
     public void regenerate(Projection proj) {
-        Debug.message("eomg", "EditableOMPoly.regenerate()");
+        Debug.message("eomg", "EditableCustomPoly.regenerate()");
         if (poly != null) {
             poly.generate(proj);
             setGrabPoints(poly);
@@ -651,15 +618,17 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
 
         generateGrabPoints(proj);
     }
+
     /**
-     * Draw the EditableOMPoly parts into the java.awt.Graphics object. The grab
+     * Draw the EditableCustomPoly parts into the java.awt.Graphics object. The grab
      * points are only rendered if the poly machine state is
      * PolySelectedState.POLY_SELECTED.
      *
      * @param graphics java.awt.Graphics.
      */
+    @Override
     public void render(java.awt.Graphics graphics) {
-        Debug.message("eomg", "EditableOMPoly.render()");
+        Debug.message("eomg", "EditableCustomPoly.render()");
 
         State state = getStateMachine().getState();
 
@@ -668,11 +637,10 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             poly.render(graphics);
             poly.setVisible(false);
         } else {
-            Debug.message("eomg", "EditableOMPoly.render: null or undefined poly.");
+            Debug.message("eomg", "EditableCustomPoly.render: null or undefined poly.");
             return;
         }
 
-        // Render the points actually on the polygon
         if (state instanceof GraphicSelectedState || state instanceof PolyAddNodeState
                 || state instanceof PolyDeleteNodeState) {
             for (GrabPoint gb : polyGrabPoints) {
@@ -684,14 +652,8 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             }
         }
 
-        // In certain conditions, render the offset grab point.
 
-        if (state instanceof GraphicSelectedState || state instanceof GraphicEditState /*
-         * ||
-         * state
-         * instanceof
-         * PolySetOffsetState
-         */) {
+        if (state instanceof GraphicSelectedState || state instanceof GraphicEditState) {
             if (gpo != null && poly.getRenderType() == OMGraphic.RENDERTYPE_OFFSET) {
                 gpo.setVisible(true);
                 gpo.render(graphics);
@@ -699,6 +661,7 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             }
         }
     }
+
     /**
      * Adds widgets to modify polygon.
      *
@@ -706,12 +669,12 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
      *        widget from to control those parameters for this EOMG.
      * @return Component to use to control parameters for this EOMG.
      */
+    @Override
     public Component getGUI(GraphicAttributes graphicAttributes) {
         Debug.message("eomg", "EditableCustomPoly.getGUI");
         if (graphicAttributes != null) {
             JMenu ahm = getArrowHeadMenu();
             graphicAttributes.setLineMenuAdditions(new JMenu[] { ahm });
-            // JComponent gaGUI = (JComponent) graphicAttributes.getGUI();
             JComponent toolbar = createAttributePanel(graphicAttributes);
             getPolyGUI(graphicAttributes.getOrientation(), toolbar);
             return toolbar;
@@ -720,19 +683,21 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
         }
     }
 
-    /** Command for text string adjustments. */
+    /** Command for changing the name of the object. */
     public final static String NameFieldCommand = "NameField";
     JToggleButton polygonButton = null;
     JButton extButton = null;
     JButton addButton = null;
     JButton deleteButton = null;
 
+    @Override
     public void enablePolygonButton(boolean enable) {
         if (polygonButton != null) {
             polygonButton.setEnabled(enable);
         }
     }
 
+    @Override
     public void enablePolygonEditButtons(boolean enable) {
         if (extButton != null) {
             extButton.setEnabled(enable);
@@ -745,18 +710,25 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
         }
     }
 
+    @Override
     public JComponent getPolyGUI() {
         return getPolyGUI(true, true, true, true, SwingConstants.HORIZONTAL);
     }
 
+    @Override
     public JComponent getPolyGUI(int orientation, JComponent toolbar) {
         return getPolyGUI(true, true, true, true, orientation, toolbar);
     }
 
+    @Override
     public JComponent getPolyGUI(boolean includeEnclose, boolean includeExt, boolean includeAdd,
                                  boolean includeDelete, int orientation) {
         return getPolyGUI(includeEnclose, includeExt, includeAdd, includeDelete, orientation, null);
     }
+
+    /**
+     * Get the GUI for editing this CustomPoly.
+     */
     @Override
     public JComponent getPolyGUI(boolean includeEnclose, boolean includeExt, boolean includeAdd,
                                  boolean includeDelete, int orientation, JComponent buttonBox) {
@@ -776,15 +748,13 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             polygonButton = new JToggleButton(imageIcon);
             polygonButton.setToolTipText(i18n.get(EditableCustomPoly.class, "polygonButton.tooltip", "Automatically link first and last nodes"));
 
-            polygonButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    if (getStateMachine().getState() instanceof GraphicSelectedState) {
-                        enclose(((JToggleButton) e.getSource()).isSelected());
-                    } else {
-                        setEnclosed(((JToggleButton) e.getSource()).isSelected());
-                    }
-                    updateCurrentState(null);
+            polygonButton.addActionListener(e -> {
+                if (getStateMachine().getState() instanceof GraphicSelectedState) {
+                    enclose(((JToggleButton) e.getSource()).isSelected());
+                } else {
+                    setEnclosed(((JToggleButton) e.getSource()).isSelected());
                 }
+                updateCurrentState(null);
             });
         }
 
@@ -799,19 +769,13 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             imageIcon = new ImageIcon(url);
             extButton = new JButton(imageIcon);
             extButton.setToolTipText(i18n.get(EditableCustomPoly.class, "extButton.tooltip", "Add a point to the polygon"));
-            extButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    // If an enclosed poly is having nodes added to it, we need
-                    // to
-                    // remove the connection, but make a note to reconnect after
-                    // editing.
-                    if (isEnclosed()) {
-                        enclose(false);
-                        setEnclosed(true);
-                    }
-                    ((PolyStateMachine) stateMachine).setAddPoint();
-                    enablePolygonEditButtons(false);
+            extButton.addActionListener(e -> {
+                if (isEnclosed()) {
+                    enclose(false);
+                    setEnclosed(true);
                 }
+                ((PolyStateMachine) stateMachine).setAddPoint();
+                enablePolygonEditButtons(false);
             });
         }
 
@@ -825,11 +789,9 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             imageIcon = new ImageIcon(url);
             addButton = new JButton(imageIcon);
             addButton.setToolTipText(i18n.get(EditableCustomPoly.class, "addButton.tooltip", "Add a node to the polygon"));
-            addButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    ((PolyStateMachine) stateMachine).setAddNode();
-                    enablePolygonEditButtons(false);
-                }
+            addButton.addActionListener(e -> {
+                ((PolyStateMachine) stateMachine).setAddNode();
+                enablePolygonEditButtons(false);
             });
         }
 
@@ -843,11 +805,9 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
             imageIcon = new ImageIcon(url);
             deleteButton = new JButton(imageIcon);
             deleteButton.setToolTipText(i18n.get(EditableCustomPoly.class, "deleteButton.tooltip", "Delete a node from the polygon"));
-            deleteButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    ((PolyStateMachine) stateMachine).setDeleteNode();
-                    enablePolygonEditButtons(false);
-                }
+            deleteButton.addActionListener(e -> {
+                ((PolyStateMachine) stateMachine).setDeleteNode();
+                enablePolygonEditButtons(false);
             });
         }
 
@@ -872,12 +832,16 @@ public class EditableCustomPoly extends EditableOMPoly implements ActionListener
         return buttonBox;
     }
 
+    /**
+     * Method for applying changes from the GUI fields to the poly.
+     * @param e event this class listens to, i.e. changes in GUI fields.
+     */
     @Override
     public void actionPerformed(ActionEvent e) {
         Object source = e.getSource();
         String command = e.getActionCommand();
 
-        if (command == NameFieldCommand) {
+        if (Objects.equals(command, NameFieldCommand)) {
             poly.setName(((JTextField) source).getText());
             poly.regenerate(projection);
             repaint();

@@ -14,9 +14,18 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
+import java.util.Objects;
 
+/**
+ * A class that encompasses basic CustomPoint and provides methods for creating it or modifying the existing one.
+ */
 public class EditableCustomPoint extends EditableOMPoint implements ActionListener{
+
+    /**
+     * This object's instance of CustomPoint that it creates and/or modifies.
+     */
     protected CustomPoint point;
+
     /**
      * Create the EditableCustomPoint, setting the state machine to create the point
      * off of the gestures.
@@ -34,7 +43,7 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
     }
 
     /**
-     * Create the EditableCustomPoint with an CustomPoint already defined, ready for
+     * Create the EditableCustomPoint with a CustomPoint already defined, ready for
      * editing.
      *
      * @param point CustomPoint that should be edited.
@@ -103,6 +112,7 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
     public OMGraphic getGraphic() {
         return point;
     }
+
     /**
      * Set the grab points for the graphic provided, setting them on the extents
      * of the graphic. Called when you want to set the grab points off the
@@ -167,6 +177,7 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
      * parameters of the CustomPoint with them. Called when you want the graphic to
      * change according to the grab points.
      */
+    @Override
     public void setGrabPoints() {
 
         int renderType = point.getRenderType();
@@ -179,7 +190,7 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
 
             if (projection != null) {
                 // movingPoint == gpc
-                llp1 = (LatLonPoint) projection.inverse(gpc.getX(), gpc.getY(), new LatLonPoint.Double());
+                llp1 = projection.inverse(gpc.getX(), gpc.getY(), new LatLonPoint.Double());
                 point.set(llp1.getY(), llp1.getX());
                 // point.setNeedToRegenerate set
             }
@@ -191,7 +202,7 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
         // If the center point is moving, the offset distance changes
         if (renderType == OMGraphic.RENDERTYPE_OFFSET) {
 
-            llp1 = (LatLonPoint) projection.inverse(gpo.getX(), gpo.getY(), new LatLonPoint.Double());
+            llp1 = projection.inverse(gpo.getX(), gpo.getY(), new LatLonPoint.Double());
 
             point.setLat(llp1.getY());
             point.setLon(llp1.getX());
@@ -251,13 +262,14 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
         }
         return true;
     }
+
     /**
      * Given a new projection, the grab points may need to be repositioned off
      * the current position of the graphic. Called when the projection changes.
      */
     @Override
     public void regenerate(Projection proj) {
-        Debug.message("eomg", "EditableOMPoint.regenerate()");
+        Debug.message("eomg", "EditableCustomPoint.regenerate()");
         if (this.point != null)
             this.point.generate(proj);
 
@@ -297,7 +309,7 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
                     GrabPoint gp = gPoints[i];
                     if (gp != null) {
                         if ((i == OFFSET_POINT_INDEX && renderType == OMGraphic.RENDERTYPE_OFFSET && movingPoint == gpo)
-                                || (state instanceof GraphicSelectedState && ((i != OFFSET_POINT_INDEX && renderType != OMGraphic.RENDERTYPE_OFFSET) || (renderType == OMGraphic.RENDERTYPE_OFFSET)))
+                                || (state instanceof GraphicSelectedState && (i != OFFSET_POINT_INDEX || renderType == OMGraphic.RENDERTYPE_OFFSET))
 
                         ) {
 
@@ -323,9 +335,7 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
     public Component getGUI(GraphicAttributes graphicAttributes) {
         Debug.message("eomg", "EditableCustomPoint.getGUI");
         if (graphicAttributes != null) {
-            // JComponent gaGUI = (JComponent) graphicAttributes.getGUI();
             JComponent toolbar = createAttributePanel(graphicAttributes);
-            // ((JComponent) gaGUI).add(getTextGUI());
             getCustomPointGUI(graphicAttributes.getOrientation(), toolbar);
             return toolbar;
         } else {
@@ -333,14 +343,17 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
         }
     }
 
-    /** Command for text string adjustments. */
+    /** Commands for changing the name, rotation angle and coordinates of the point. */
     public final static String NameFieldCommand = "NameField";
     public final static String PointRotationCommand = "PointRotation";
     public final static String PointLatitudeCommand = "PointLatitude";
     public final static String PointLongitudeCommand = "PointLongitude";
 
+    /**
+     * Get the GUI associated with changing the CustomPoint.
+     */
     protected JComponent getCustomPointGUI() {
-        return getCustomPointGUI(SwingConstants.HORIZONTAL, (JComponent) null);
+        return getCustomPointGUI(SwingConstants.HORIZONTAL, null);
     }
 
     JComponent attributeBox;
@@ -355,7 +368,7 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
      *        orientation is Vertical, a button will be added to the guiComp, or
      *        returned. This button will call up a dialog box with the settings,
      *        since they don't really lay out vertically.
-     * @return JComponent with text controls.
+     * @return JComponent with controls.
      */
     protected JComponent getCustomPointGUI(int orientation, JComponent guiComp) {
         attributeBox = null;
@@ -378,16 +391,14 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
 
         if (orientation == SwingConstants.VERTICAL) {
             JButton launchButton = new JButton("CustomPoint");
-            launchButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent ae) {
-                    if (attributeBox != null) {
-                        JDialog dialog = new JDialog();
-                        dialog.setContentPane(attributeBox);
-                        dialog.setModal(true);
-                        dialog.pack();
-                        dialog.setLocationRelativeTo((JButton) ae.getSource());
-                        dialog.setVisible(true);
-                    }
+            launchButton.addActionListener(ae -> {
+                if (attributeBox != null) {
+                    JDialog dialog = new JDialog();
+                    dialog.setContentPane(attributeBox);
+                    dialog.setModal(true);
+                    dialog.pack();
+                    dialog.setLocationRelativeTo((JButton) ae.getSource());
+                    dialog.setVisible(true);
                 }
             });
             guiComp.add(launchButton);
@@ -445,20 +456,25 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
         return guiComp;
     }
 
+    /**
+     * Method for applying changes from the GUI fields to the point.
+     * @param e event this class listens to, i.e. changes in GUI fields.
+     */
+    @Override
     public void actionPerformed(ActionEvent e) {
         Object source = e.getSource();
         String command = e.getActionCommand();
 
-        if (command == NameFieldCommand) {
+        if (Objects.equals(command, NameFieldCommand)) {
             point.setName(((JTextField) source).getText());
             point.regenerate(projection);
             repaint();
-        } else if (command == PointRotationCommand) {
+        } else if (Objects.equals(command, PointRotationCommand)) {
             Integer rotation = new Integer(((JTextField) source).getText());
             point.setRotationAngle(Math.toRadians(rotation));
             point.regenerate(projection);
             repaint();
-        } else if (command == PointLatitudeCommand) {
+        } else if (Objects.equals(command, PointLatitudeCommand)) {
             double latitude = new Double(((JTextField) source).getText());
             if(Math.abs(latitude) < 90) {
                 point.setLat(latitude);
@@ -469,8 +485,8 @@ public class EditableCustomPoint extends EditableOMPoint implements ActionListen
                 }
                 repaint();
             }
-        } else if (command == PointLongitudeCommand) {
-            Double longitude = new Double(((JTextField) source).getText());
+        } else if (Objects.equals(command, PointLongitudeCommand)) {
+            double longitude = new Double(((JTextField) source).getText());
             if(Math.abs(longitude) < 180) {
                 point.setLon(longitude);
                 point.regenerate(projection);

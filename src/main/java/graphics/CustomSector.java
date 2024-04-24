@@ -12,12 +12,23 @@ import java.awt.*;
 import java.awt.geom.*;
 import java.util.ArrayList;
 
-public class CustomSector extends OMRect {
+/**
+ * Graphic type that lets you draw CustomSectors, i.e. sectors that can have their name, center-point coordinates
+ * and radiuses be set by the user.
+ * <p>It extends OMRect class because a sector can be put inside a rectangle and thus shares most of the features.</p>
+ */
+public class CustomSector extends OMRect implements Nameable {
 
+    /**
+     * Constants for drawing the sector. They define that it covers the area from between angles -Pi/2 and 0.0.
+     */
     private static final double start = -90.0;
     private static final double extent = 90.0;
     private static final int arcType = Arc2D.PIE;
 
+    /**
+     * String field that contains the name of the object.
+     */
     protected String name;
 
     /** Default constructor, waiting to be filled. */
@@ -26,7 +37,7 @@ public class CustomSector extends OMRect {
     }
 
     /**
-     * Create a lat/lon rectangle.
+     * Create a lat/lon sector.
      *
      * @param lt1 latitude of north edge, decimal degrees.
      * @param ln1 longitude of west edge, decimal degrees.
@@ -40,7 +51,7 @@ public class CustomSector extends OMRect {
     }
 
     /**
-     * Create a lat/lon rectangle.
+     * Create a lat/lon sector.
      *
      * @param lt1 latitude of north edge, decimal degrees.
      * @param ln1 longitude of west edge, decimal degrees.
@@ -57,8 +68,8 @@ public class CustomSector extends OMRect {
     }
 
     /**
-     * Construct an XY rectangle. It doesn't matter which corners of the
-     * rectangle are used, as long as they are opposite from each other.
+     * Construct an XY sector. It doesn't matter which corners of the surrounding
+     * sector are used, as long as they are opposite from each other.
      *
      * @param px1 x pixel position of the first corner relative to the window
      *        origin
@@ -75,8 +86,8 @@ public class CustomSector extends OMRect {
     }
 
     /**
-     * Construct an XY rectangle relative to a lat/lon point
-     * (RENDERTYPE_OFFSET). It doesn't matter which corners of the rectangle are
+     * Construct an XY sector relative to a lat/lon point
+     * (RENDERTYPE_OFFSET). It doesn't matter which corners of the are surrounding
      * used, as long as they are opposite from each other.
      *
      * @param lt1 latitude of the reference point, decimal degrees.
@@ -95,11 +106,18 @@ public class CustomSector extends OMRect {
         setName("sector");
     }
 
-
+    /**
+     * Set the name of the object.
+     * @param name the name to be set for the object.
+     */
+    @Override
     public synchronized void setName(String name){
         this.name = name;
     }
 
+    /**
+     * Setters for other fields that can be changed during editing.
+     */
     public void setLat1(double lat1){
         this.lat1 = lat1;
     }
@@ -132,10 +150,19 @@ public class CustomSector extends OMRect {
         this.y2 = y2;
     }
 
+    /**
+     * Get the current name of the object.
+     *
+     * @return String containing the name of the object
+     */
+    @Override
     public String getName() {
         return this.name;
     }
 
+    /**
+     * Getters for other fields of the object that may be accessed.
+     */
     public double getLat1(){
         return this.lat1;
     }
@@ -169,7 +196,7 @@ public class CustomSector extends OMRect {
     }
 
     /**
-     * Prepare the rectangle for rendering.
+     * Prepare the sector for rendering.
      *
      * @param proj Projection
      * @return true if generate was successful
@@ -180,7 +207,7 @@ public class CustomSector extends OMRect {
         setNeedToRegenerate(true);
 
         if (proj == null) {
-            Debug.message("omgraphic", "OMRect: null projection in generate!");
+            Debug.message("omgraphic", "CustomSector: null projection in generate!");
             return false;
         }
         // reset the internals
@@ -189,8 +216,8 @@ public class CustomSector extends OMRect {
         double y;
         double width;
         double height;
-        Shape arcShape = null;
-        PathIterator pi = null;
+        Shape arcShape;
+        PathIterator pi;
         switch (renderType) {
             case RENDERTYPE_XY:
                 x = Math.min(x2, x1);
@@ -206,7 +233,7 @@ public class CustomSector extends OMRect {
                 break;
             case RENDERTYPE_OFFSET:
                 if (!proj.isPlotable(lat1, lon1)) {
-                    setNeedToRegenerate(true);// HMMM not the best flag
+                    setNeedToRegenerate(true);
                     return false;
                 }
                 Point p1 = (Point) proj.forward(lat1, lon1, new Point());
@@ -224,15 +251,12 @@ public class CustomSector extends OMRect {
                 break;
             case RENDERTYPE_LATLON:
                 double[] rawllpts = createLatLonPoints();
-                ArrayList<float[]> vector = null;
+                ArrayList<float[]> vector;
 
-                // polygon/polyline project the polygon/polyline.
-                // Vertices should already be in radians.ArrayList vector;
                 if (proj instanceof GeoProj) {
                     vector = ((GeoProj) proj).forwardPoly(rawllpts, getLineType(), -1, true);
 
                     int size = vector.size();
-                    // We could call create shape, but this is more efficient.
                     for (int i = 0; i < size; i += 2) {
                         GeneralPath gp = createShape(vector.get(i), vector.get(i + 1), true);
 
@@ -257,6 +281,10 @@ public class CustomSector extends OMRect {
         return true;
     }
 
+    /**
+     * Takes the OMGeometry object and if it also belongs to this class copies it to this object.
+     * @param source Object to be restored.
+     */
     @Override
     public void restore(OMGeometry source) {
         super.restore(source);
@@ -274,15 +302,19 @@ public class CustomSector extends OMRect {
             this.nsegs = sector.nsegs;
         }
     }
+
     /**
      * An internal method designed to fetch the Shape to be used for an XY or
-     * OFFSET OMArc. This method is smart enough to take the calculated position
-     * information and make a call to Arc2D.Double with start, extent and
-     * arcType information.
+     * OFFSET OMArc.
      */
     protected Shape createArcShape(double x, double y, double fwidth, double fheight) {
         return new Arc2D.Double(x, y, fwidth, fheight, start, extent, arcType);
     }
+
+    /**
+     * Internal method that creates a set of points constituting an arc to be rendered as a polygon later.
+     * @return coordinates of points on the arc
+     */
 
     public double[] createLatLonPoints() {
         int i;

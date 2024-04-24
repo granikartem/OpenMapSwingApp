@@ -1,14 +1,24 @@
 package graphics;
 
 import com.bbn.openmap.omGraphics.OMGeometry;
-import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMPoly;
 import com.bbn.openmap.util.DeepCopyUtil;
 
-public class CustomPoly extends OMPoly {
-    protected String name;
+
+/**
+ * Graphic type that lets you draw CustomPolys, i.e. polys that can have their name
+ * be set by the user.
+ */
+public class CustomPoly extends OMPoly implements Nameable{
+
     /**
-     * Construct a default OMPoly.
+     * String field that contains the name of the object.
+     */
+    protected String name;
+
+    /**
+     * Construct a default CustomPoly.
+     * <p>Set the name of the object to 'poly' by default. </p>
      */
     public CustomPoly() {
         super();
@@ -16,7 +26,8 @@ public class CustomPoly extends OMPoly {
     }
 
     /**
-     * Create an OMPoly from a list of float lat/lon pairs.
+     * Create an CustomPoly from a list of float lat/lon pairs.
+     * <p>Set the name of the object to 'poly' by default. </p>
      * <p>
      * NOTES:
      * <ul>
@@ -38,7 +49,8 @@ public class CustomPoly extends OMPoly {
     }
 
     /**
-     * Create an OMPoly from a list of float lat/lon pairs.
+     * Create an CustomPoly from a list of float lat/lon pairs.
+     * <p>Set the name of the object to 'poly' by default. </p>
      * <p>
      * NOTES:
      * <ul>
@@ -64,9 +76,10 @@ public class CustomPoly extends OMPoly {
     }
 
     /**
-     * Create an OMPoly from a list of xy pairs. If you want the poly to be
+     * Create an CustomPoly from a list of xy pairs. If you want the poly to be
      * connected, you need to ensure that the first and last coordinate pairs
      * are the same.
+     * <p>Set the name of the object to 'poly' by default. </p>
      *
      * @param xypoints array of x/y points, arranged x, y, x, y, etc.
      */
@@ -76,9 +89,9 @@ public class CustomPoly extends OMPoly {
     }
 
     /**
-     * Create an x/y OMPoly. If you want the poly to be connected, you need to
+     * Create an x/y CustomPoly. If you want the poly to be connected, you need to
      * ensure that the first and last coordinate pairs are the same.
-     *
+     * <p>Set the name of the object to 'poly' by default. </p>
      * @param xPoints float[] of x coordinates
      * @param yPoints float[] of y coordinates
      */
@@ -88,10 +101,10 @@ public class CustomPoly extends OMPoly {
     }
 
     /**
-     * Create an x/y OMPoly at an offset from lat/lon. If you want the poly to
+     * Create an x/y CustomPoly at an offset from lat/lon. If you want the poly to
      * be connected, you need to ensure that the first and last coordinate pairs
      * are the same.
-     *
+     * <p>Set the name of the object to 'poly' by default. </p>
      * @param latPoint latitude in decimal degrees
      * @param lonPoint longitude in decimal degrees
      * @param xypoints float[] of x,y pairs
@@ -103,10 +116,10 @@ public class CustomPoly extends OMPoly {
     }
 
     /**
-     * Create an x/y OMPoly at an offset from lat/lon. If you want the poly to
+     * Create an x/y CustomPoly at an offset from lat/lon. If you want the poly to
      * be connected, you need to ensure that the first and last coordinate pairs
      * are the same.
-     *
+     * <p>Set the name of the object to 'poly' by default. </p>
      * @param latPoint latitude in decimal degrees
      * @param lonPoint longitude in decimal degrees
      * @param xPoints float[] of x coordinates
@@ -118,14 +131,29 @@ public class CustomPoly extends OMPoly {
         setName("poly");
     }
 
+    /**
+     * Sets the name of the object.
+     * @param name name to be set for the object.
+     */
+    @Override
     public synchronized void setName(String name){
         this.name = name;
     }
 
+    /**
+     * Get the current name of the object.
+     *
+     * @return String containing the name of the object
+     */
+    @Override
     public String getName() {
         return name;
     }
 
+    /**
+     * Takes the OMGeometry object and if it also belongs to this class copies it to this object.
+     * @param source Object to be restored.
+     */
     @Override
     public void restore(OMGeometry source) {
         super.restore(source);
